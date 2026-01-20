@@ -1,0 +1,24 @@
+[project]
+name = "cadet"
+version = "1.0.0"
+description = "CADET metapackage."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "cadet-python>=1.1.2",
+  "cadet-process>=0.11.1",
+]
+
+[project.optional-dependencies]
+rdm = ["cadet-rdm>=1.0.1"]
+#Add less used packages as optional dependencies
+all = ["cadet-rdm>=1.0.1"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
+
+
