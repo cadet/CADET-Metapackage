@@ -92,6 +92,11 @@ jobs:
           python -m pip install -e ".[testing]" || python -m pip install -e "."
           python -m pip install -U pytest
 
+          python -c "import sys; print('python:', sys.executable); print(sys.version)"
+          python -c "import psutil; print('psutil file:', psutil.__file__); print('psutil version:', getattr(psutil,'__version__','?')); print('has cpu_freq:', hasattr(psutil,'cpu_freq'))"
+          python -m pip show psutil
+
+
       - name: Run pytest
         shell: bash
         run: |
