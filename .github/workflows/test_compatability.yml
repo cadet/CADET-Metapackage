@@ -1,0 +1,101 @@
+name: Test CADET version compatibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      cadet_core_version:
+        description: "cadet-core version to install from TestPyPI (empty = latest)"
+        required: false
+        default: ""
+      cadet_process_ref:
+        description: "cadet-process git ref (branch/tag/sha)"
+        required: false
+        default: "dev"
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout cadet-process
+        uses: actions/checkout@v4
+        with:
+          repository: fau-advanced-separations/CADET-Process
+          ref: ${{ inputs.cadet_process_ref }}
+          path: cadet-process
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade packaging tools
+        run: |
+          python -m pip install -U pip setuptools wheel
+
+      - name: Install cadet-core from TestPyPI
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ -n "${{ inputs.cadet_core_version }}" ]; then
+            python -m pip install \
+              --index-url https://test.pypi.org/simple \
+              --extra-index-url https://pypi.org/simple \
+              "cadet-core==${{ inputs.cadet_core_version }}"
+          else
+            python -m pip install \
+              --index-url https://test.pypi.org/simple \
+              --extra-index-url https://pypi.org/simple \
+              cadet-core
+          fi
+
+          python -c "import cadet_core; print('cadet-core', cadet_core.__version__)"
+          python -c "import cadet_core; print('cadet-cli', cadet_core.get_cadet_binary())"
+
+      - name: Put cadet-cli from cadet-core on PATH
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import cadet_core
+
+          # cadet_core/bin directory inside the installed wheel
+          bindir = Path(cadet_core.__file__).resolve().parent / "bin"
+          print("cadet_core bin dir:", bindir)
+
+          # Persist for subsequent steps
+          with open(os.environ["GITHUB_PATH"], "a") as f:
+            f.write(str(bindir) + "\n")
+          PY
+
+      - name: Verify cadet-cli is visible
+        shell: bash
+        run: |
+          which cadet-cli
+          cadet-cli --version
+
+      - name: Install cadet-process in testing config
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd cadet-process
+
+          python -m pip install -e ".[testing]" || python -m pip install -e "."
+          python -m pip install -U pytest
+
+      - name: Run pytest
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd cadet-process
+          pytest tests -m "not slow" --durations=0
+
