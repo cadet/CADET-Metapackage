@@ -93,9 +93,20 @@ jobs:
           python -m pip install -U pytest
 
           python -c "import sys; print('python:', sys.executable); print(sys.version)"
-          python -c "import psutil; print('psutil file:', psutil.__file__); print('psutil version:', getattr(psutil,'__version__','?')); print('has cpu_freq:', hasattr(psutil,'cpu_freq'))"
-          python -m pip show psutil
 
+      - name: Pre-run reduced pytests on MacOS
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            python -m pytest tests -m "not slow" --durations=0 \
+              --ignore=tests/test_cache.py \
+              --ignore=tests/test_difference.py \
+              --ignore=tests/test_individual.py \
+              --ignore=tests/test_optimization_problem.py \
+              --ignore=tests/test_optimization_results.py \
+              --ignore=tests/test_optimizer_behavior.py \
+              --ignore=tests/test_parallelization_adapter.py \
+              --ignore=tests/test_population.py \
+              --ignore=tests/test_pymoo.py
 
       - name: Run pytest
         shell: bash
@@ -103,4 +114,5 @@ jobs:
           set -euxo pipefail
           cd cadet-process
           pytest tests -m "not slow" --durations=0
+
 
