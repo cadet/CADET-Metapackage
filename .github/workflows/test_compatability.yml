@@ -135,11 +135,5 @@ jobs:
           cd cadet-process
           python -m pytest tests -m "not slow" --durations=0
 
-      - name: Fail macOS job intentionally after showing full error
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          echo "Failing intentionally on macOS to surface the known psutil cpu_freq collection error."
-          exit 1
 
 
