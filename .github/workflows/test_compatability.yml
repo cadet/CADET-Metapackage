@@ -38,7 +38,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Upgrade packaging tools
+        shell: bash
         run: |
+          set -euxo pipefail
           python -m pip install -U pip setuptools wheel
 
       - name: Install cadet-core from TestPyPI
@@ -60,28 +62,33 @@ jobs:
           python -c "import cadet_core; print('cadet-core', cadet_core.__version__)"
           python -c "import cadet_core; print('cadet-cli', cadet_core.get_cadet_binary())"
 
-      - name: Put cadet-cli from cadet-core on PATH
+      - name: Put cadet_core/bin on PATH (bundled binaries/DLLs)
         shell: bash
         run: |
+          set -euxo pipefail
           python - <<'PY'
           import os
           from pathlib import Path
           import cadet_core
 
-          # cadet_core/bin directory inside the installed wheel
           bindir = Path(cadet_core.__file__).resolve().parent / "bin"
           print("cadet_core bin dir:", bindir)
 
-          # Persist for subsequent steps
           with open(os.environ["GITHUB_PATH"], "a") as f:
-            f.write(str(bindir) + "\n")
+              f.write(str(bindir) + "\n")
           PY
 
-      - name: Verify cadet-cli is visible
+      - name: Verify cadet-cli is runnable
         shell: bash
         run: |
-          which cadet-cli
-          cadet-cli --version
+          set -euxo pipefail
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ls -la "$pythonLocation/Scripts" | grep -i cadet || true
+            "$pythonLocation/Scripts/cadet-cli.exe" --version
+          else
+            which cadet-cli
+            cadet-cli --version
+          fi
 
       - name: Install cadet-process in testing config
         shell: bash
@@ -94,8 +101,12 @@ jobs:
 
           python -c "import sys; print('python:', sys.executable); print(sys.version)"
 
-      - name: Pre-run reduced pytests on MacOS
+      - name: Run pytest (reduced set on macOS)
+        shell: bash
         run: |
+          set -euxo pipefail
+          cd cadet-process
+
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             python -m pytest tests -m "not slow" --durations=0 \
               --ignore=tests/test_cache.py \
@@ -107,12 +118,24 @@ jobs:
               --ignore=tests/test_parallelization_adapter.py \
               --ignore=tests/test_population.py \
               --ignore=tests/test_pymoo.py
+          else
+            python -m pytest tests -m "not slow" --durations=0
+          fi
 
-      - name: Run pytest
+      - name: Run pytest (full set on macOS, expected to error due to psutil)
+        if: runner.os == 'macOS'
         shell: bash
+        continue-on-error: true
         run: |
           set -euxo pipefail
           cd cadet-process
-          pytest tests -m "not slow" --durations=0
+          python -m pytest tests -m "not slow" --durations=0
+
+      - name: Fail macOS job intentionally after showing full error
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "Failing intentionally on macOS to surface the known psutil cpu_freq collection error."
+          exit 1
 
 
