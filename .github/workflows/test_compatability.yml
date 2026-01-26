@@ -78,17 +78,21 @@ jobs:
               f.write(str(bindir) + "\n")
           PY
 
-      - name: Verify cadet-cli is runnable
+      - name: Verify CADET binary is runnable
         shell: bash
         run: |
           set -euxo pipefail
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ls -la "$pythonLocation/Scripts" | grep -i cadet || true
-            "$pythonLocation/Scripts/cadet-cli.exe" --version
-          else
-            which cadet-cli
-            cadet-cli --version
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+            which cadet-cli || true
           fi
+          python - <<'PY'
+          import subprocess
+          import cadet_core
+          exe = cadet_core.get_cadet_binary()
+          print("Using CADET binary:", exe)
+          subprocess.check_call([exe, "--version"])
+          PY
+
 
       - name: Install cadet-process in testing config
         shell: bash
