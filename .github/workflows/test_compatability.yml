@@ -78,6 +78,19 @@ jobs:
               f.write(str(bindir) + "\n")
           PY
 
+      - name: Set up MSVC dev cmd (provides dumpbin)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Show CADET dependencies (dumpbin)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = python -c "import cadet_core; print(cadet_core.get_cadet_binary())"
+          Write-Host "EXE: $exe"
+          dumpbin /DEPENDENTS $exe
+
+
       - name: Verify CADET binary is runnable
         shell: bash
         run: |
