@@ -86,11 +86,21 @@ jobs:
             which cadet-cli || true
           fi
           python - <<'PY'
+          import os
           import subprocess
+          from pathlib import Path
           import cadet_core
-          exe = cadet_core.get_cadet_binary()
+
+          exe = Path(cadet_core.get_cadet_binary())
+          bindir = exe.parent
+
+          env = os.environ.copy()
+          env["PATH"] = str(bindir) + os.pathsep + env.get("PATH", "")
+
           print("Using CADET binary:", exe)
-          subprocess.check_call([exe, "--version"])
+          print("Prepended to PATH:", bindir)
+
+          subprocess.check_call([str(exe), "--version"], env=env)
           PY
 
 
