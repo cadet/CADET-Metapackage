@@ -128,31 +128,7 @@ jobs:
 
           python -c "import sys; print('python:', sys.executable); print(sys.version)"
 
-      - name: Run pytest (reduced set on macOS)
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cd cadet-process
-
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            python -m pytest tests -m "not slow" --durations=0 \
-              --ignore=tests/test_cache.py \
-              --ignore=tests/test_difference.py \
-              --ignore=tests/test_individual.py \
-              --ignore=tests/test_optimization_problem.py \
-              --ignore=tests/test_optimization_results.py \
-              --ignore=tests/test_optimizer_behavior.py \
-              --ignore=tests/test_parallelization_adapter.py \
-              --ignore=tests/test_population.py \
-              --ignore=tests/test_pymoo.py
-          else
-            python -m pytest tests -m "not slow" --durations=0
-          fi
-
-      - name: Run pytest (full set on macOS, expected to error due to psutil)
-        if: runner.os == 'macOS'
-        shell: bash
-        continue-on-error: true
+      - name: Run pytest
         run: |
           set -euxo pipefail
           cd cadet-process
