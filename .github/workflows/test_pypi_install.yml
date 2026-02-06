@@ -1,0 +1,165 @@
+name: Verify CADET Metapackage
+
+on:
+  workflow_dispatch:
+    inputs:
+      cadet_version:
+        description: "CADET (metapackage) version to install from PyPI (empty = latest)"
+        required: false
+        default: ""
+
+  workflow_call:
+    inputs:
+      cadet_version:
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install CADET from PyPI
+        id: install_cadet
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install -U pip setuptools wheel
+          if [ -n "${{ inputs.cadet_version }}" ]; then
+            python -m pip install "CADET==${{ inputs.cadet_version }}"
+          else
+            python -m pip install CADET
+          fi
+
+      - name: Detect installed versions (CADET + cadet-process)
+        id: detect
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          import os
+          import importlib.metadata as im
+
+          def v(name):
+              try:
+                  return im.version(name)
+              except Exception:
+                  return "not installed"
+
+          cadet_v = v("CADET")
+          proc_v = v("cadet-process")
+          core_v = v("cadet-core")
+          py_v   = v("cadet-python")
+
+          print("Installed packages:")
+          print("CADET       :", cadet_v)
+          print("cadet-core  :", core_v)
+          print("cadet-python:", py_v)
+          print("cadet-process:", proc_v)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"cadet_process_version={proc_v}\n")
+          PY
+
+      - name: Resolve CADET-Process ref (prefer tag matching installed version)
+        id: resolve_proc_ref
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = "fau-advanced-separations";
+            const repo = "CADET-Process";
+            const v = (process.env.PROC_VER || "").trim();
+
+            if (!v || v === "not installed") {
+              const rel = await github.rest.repos.getLatestRelease({ owner, repo });
+              core.setOutput("ref", rel.data.tag_name);
+              core.warning(`cadet-process is not installed. Falling back to latest release tag ${rel.data.tag_name}.`);
+              return;
+            }
+
+            const candidates = [`v${v}`, v];
+
+            async function tagExists(tag) {
+              try {
+                await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+                return true;
+              } catch (e) {
+                return false;
+              }
+            }
+
+            for (const t of candidates) {
+              if (await tagExists(t)) {
+                core.setOutput("ref", t);
+                core.info(`Using CADET-Process tag matching installed cadet-process: ${t}`);
+                return;
+              }
+            }
+
+            const rel = await github.rest.repos.getLatestRelease({ owner, repo });
+            core.setOutput("ref", rel.data.tag_name);
+            core.warning(`No tag found for installed cadet-process ${v}. Falling back to latest release tag ${rel.data.tag_name}.`);
+        env:
+          PROC_VER: ${{ steps.detect.outputs.cadet_process_version }}
+
+      - name: Checkout CADET-Process (tests)
+        uses: actions/checkout@v4
+        with:
+          repository: fau-advanced-separations/CADET-Process
+          ref: ${{ steps.resolve_proc_ref.outputs.ref }}
+          path: cadet-process
+
+      - name: Put cadet_core/bin on PATH (bundled binaries/DLLs)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import cadet_core
+          bindir = Path(cadet_core.__file__).resolve().parent / "bin"
+          print("cadet_core bin dir:", bindir)
+          with open(os.environ["GITHUB_PATH"], "a", encoding="utf-8") as f:
+              f.write(str(bindir) + "\n")
+          PY
+
+      - name: Install test dependencies (without changing installed CADET stack)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install -U pytest
+          cd cadet-process
+          python -m pip install -e ".[testing]" --no-deps || true
+
+      - name: Verify cadet-cli and run pytest
+        shell: bash
+        env:
+          MPLBACKEND: Agg
+        run: |
+          set -euxo pipefail
+
+          python - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          import cadet_core
+
+          exe = Path(cadet_core.get_cadet_binary())
+          env = os.environ.copy()
+          env["PATH"] = str(exe.parent) + os.pathsep + env.get("PATH", "")
+          subprocess.check_call([str(exe), "--version"], env=env)
+          PY
+
+          cd cadet-process
+          python -m pytest tests -m "not slow" --durations=0
+
