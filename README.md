@@ -15,6 +15,11 @@ Its only purpose is to install a curated set of CADET Python packages.
 
 Installing `cadet` will install the following packages:
 
+* **CADET-Core**
+  The heart of CADET: A modular, fast, and accurate modeling and simulation framework for biotechnology processes
+  PyPI: [https://pypi.org/project/CADET-Core/](https://pypi.org/project/CADET-Core/)
+  Repository: [https://github.com/cadet/CADET-Core](https://github.com/cadet/CADET-Core)
+
 * **CADET-Process**
   Process analysis, optimization, and design toolkit
   PyPI: [https://pypi.org/project/cadet-process/](https://pypi.org/project/cadet-process/)
