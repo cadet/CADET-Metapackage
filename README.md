@@ -1,6 +1,6 @@
 [![PyPI version](https://img.shields.io/pypi/v/cadet.svg)](https://pypi.org/project/cadet/)
 [![Python](https://img.shields.io/pypi/pyversions/cadet.svg)](https://pypi.org/project/cadet/)
-[![License](https://img.shields.io/github/license/cadet/cadet)](LICENSE)
+[![License](https://img.shields.io/github/license/cadet/cadet-metapackage)](LICENSE)
 [![CADET version compatibility](https://github.com/cadet/CADET-Metapackage/actions/workflows/test_compatibility.yml/badge.svg)](https://github.com/cadet/CADET-Metapackage/actions/workflows/test_compatibility.yml)
 [![Verify CADET Metapackage](https://github.com/cadet/CADET-Metapackage/actions/workflows/test_pypi_install.yml/badge.svg)](https://github.com/cadet/CADET-Metapackage/actions/workflows/test_pypi_install.yml)
 
@@ -67,7 +67,7 @@ The `all` extra exists as a stable entry point if additional optional components
 ## Important notes
 
 * This is a **metapackage only**.
-  There is no `cadet` Python module to import.
+  There is no Python module to import.
 
 * **Do not depend on `cadet` in other Python packages.**
   If you are developing a library, depend directly on the specific CADET components you use, such as `cadet-process` or `cadet-python`.
