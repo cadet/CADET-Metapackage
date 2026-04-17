@@ -13,11 +13,9 @@ This repository:
 
 The metapackage installs:
 
-* `cadet-core` (explicit version)
-* `cadet-process` (explicit version)
-* `cadet-python` implicitly, as a dependency of `cadet-process`
-
-The `cadet-python` version is therefore **not set explicitly** in this repository.
+* `cadet-core`
+* `cadet-process`
+* `cadet-python`
 
 ## Version control via `pyproject.toml`
 
