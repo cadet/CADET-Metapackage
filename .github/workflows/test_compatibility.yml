@@ -55,16 +55,16 @@ jobs:
         run: |
           set -euxo pipefail
           python - <<'PY'
-          import re
+          import os, re
           from pathlib import Path
           import tomllib
           from packaging.specifiers import SpecifierSet
 
           pyproject = Path("pyproject.toml")
-          out = Path(__import__("os").environ["GITHUB_OUTPUT"])
 
           def write(k, v):
-              out.write_text(out.read_text(encoding="utf-8") + f"{k}={v}\n" if out.exists() else f"{k}={v}\n", encoding="utf-8")
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+                  fh.write(f"{k}={v}\n")
 
           def normalize_req(req: str) -> str:
               # Allow "pkg=1.2.3" and "pkg==1.2.3"

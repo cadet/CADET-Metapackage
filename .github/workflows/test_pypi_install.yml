@@ -31,7 +31,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install CADET from PyPI
-        id: install_cadet
         shell: bash
         run: |
           set -euxo pipefail
@@ -140,15 +139,12 @@ jobs:
           set -euxo pipefail
           python -m pip install -U pytest
           cd cadet-process
-          python -m pip install -e ".[testing]" --no-deps || true
+          python -m pip install -e ".[testing]" --no-deps || echo "Warning: editable install of testing extras failed (non-fatal, using installed cadet-process)"
 
-      - name: Verify cadet-cli and run pytest
+      - name: Verify cadet-cli
         shell: bash
-        env:
-          MPLBACKEND: Agg
         run: |
           set -euxo pipefail
-
           python - <<'PY'
           import os, subprocess
           from pathlib import Path
@@ -160,6 +156,12 @@ jobs:
           subprocess.check_call([str(exe), "--version"], env=env)
           PY
 
+      - name: Run pytest
+        shell: bash
+        env:
+          MPLBACKEND: Agg
+        run: |
+          set -euxo pipefail
           cd cadet-process
 
           if [[ "${{ runner.os }}" == "macOS" ]]; then
@@ -180,7 +182,4 @@ jobs:
           else
             python -m pytest tests -m "not slow" --durations=0
           fi
-
-
-          python -m pytest tests -m "not slow" --durations=0 "${EXTRA_ARGS[@]}"
 
