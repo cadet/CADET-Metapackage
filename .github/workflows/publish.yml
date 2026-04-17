@@ -65,3 +65,5 @@ jobs:
   test_metapackage:
     needs: publish
     uses: ./.github/workflows/test_pypi_install.yml
+    with:
+      cadet_process_ref: ${{ github.event.inputs.cadet_process_ref || 'dev' }}

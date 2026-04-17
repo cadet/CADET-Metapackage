@@ -7,10 +7,18 @@ on:
         description: "CADET (metapackage) version to install from PyPI (empty = latest)"
         required: false
         default: ""
+      cadet_process_ref:
+        description: "cadet-process git ref (branch/tag/sha) for test checkout. If empty, uses tag matching installed version."
+        required: false
+        default: ""
 
   workflow_call:
     inputs:
       cadet_version:
+        required: false
+        type: string
+        default: ""
+      cadet_process_ref:
         required: false
         type: string
         default: ""
@@ -71,13 +79,21 @@ jobs:
               f.write(f"cadet_process_version={proc_v}\n")
           PY
 
-      - name: Resolve CADET-Process ref (prefer tag matching installed version)
+      - name: Resolve CADET-Process ref (input > tag matching installed version > latest release)
         id: resolve_proc_ref
         uses: actions/github-script@v7
         with:
           script: |
             const owner = "fau-advanced-separations";
             const repo = "CADET-Process";
+            const inputRef = (process.env.INPUT_REF || "").trim();
+
+            if (inputRef) {
+              core.setOutput("ref", inputRef);
+              core.info(`Using provided CADET-Process ref: ${inputRef}`);
+              return;
+            }
+
             const v = (process.env.PROC_VER || "").trim();
 
             if (!v || v === "not installed") {
@@ -110,6 +126,7 @@ jobs:
             core.setOutput("ref", rel.data.tag_name);
             core.warning(`No tag found for installed cadet-process ${v}. Falling back to latest release tag ${rel.data.tag_name}.`);
         env:
+          INPUT_REF: ${{ inputs.cadet_process_ref }}
           PROC_VER: ${{ steps.detect.outputs.cadet_process_version }}
 
       - name: Checkout CADET-Process (tests)
