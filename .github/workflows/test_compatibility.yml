@@ -252,7 +252,7 @@ jobs:
           fi
 
           cd cadet-process
-          python -m pip install -e ".[testing]" || python -m pip install -e "."
+          python -m pip install -e . --group testing || python -m pip install -e "."
           python -m pip install -U pytest
 
       - name: Put cadet_core/bin on PATH (bundled binaries/DLLs)
