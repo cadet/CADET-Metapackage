@@ -252,7 +252,8 @@ jobs:
           fi
 
           cd cadet-process
-          python -m pip install -e . --group testing || python -m pip install -e "."
+          # Temporary pin: keep scipy on the 1.17.x line until compatibility with 1.18 is confirmed.
+          python -m pip install -e . --group testing "scipy~=1.17.0" || python -m pip install -e "." "scipy~=1.17.0"
           python -m pip install -U pytest
 
       - name: Put cadet_core/bin on PATH (bundled binaries/DLLs)
