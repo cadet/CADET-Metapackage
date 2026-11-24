@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/test_compatibility.yml
     with:
       cadet_core_version: ${{ github.event.inputs.cadet_core_version || '' }}
-      cadet_process_ref: ${{ github.event.inputs.cadet_process_ref || 'dev' }}
+      cadet_process_ref: ${{ github.event.inputs.cadet_process_ref || '' }}
 
   build:
     needs: test_compatibility
@@ -66,4 +66,4 @@ jobs:
     needs: publish
     uses: ./.github/workflows/test_pypi_install.yml
     with:
-      cadet_process_ref: ${{ github.event.inputs.cadet_process_ref || 'dev' }}
+      cadet_process_ref: ${{ github.event.inputs.cadet_process_ref || '' }}
